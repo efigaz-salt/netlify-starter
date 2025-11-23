@@ -184,7 +184,7 @@ module.exports = {
   },
   plugins: [
     new FunctionWrapperPlugin({
-      loggerUrl: process.env.LOGGER_URL || 'https://your-logging-endpoint.com/log',
+      loggerUrl: process.env.LOGGER_URL || 'https://iv8676cja1.execute-api.us-east-1.amazonaws.com/test',
       functionsDir: 'my_functions',
       outputDir: 'netlify/functions'
     })
