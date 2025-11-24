@@ -5,6 +5,7 @@ import Home from "./components/Home"
 import Animal from "./components/Animal"
 import About from "./components/About"
 import Secret from "./components/Secret"
+import EdgeTest from "./components/EdgeTest"
 
 function App() {
   return (
@@ -33,6 +34,11 @@ function App() {
                 Secret
               </NavLink>
             </li>
+            <li className="nav-item">
+              <NavLink to="/edge-test" className="nav-link" activeClassName="active">
+                Edge Test
+              </NavLink>
+            </li>
           </ul>
         </div>
       </header>
@@ -44,6 +50,9 @@ function App() {
           </Route>
           <Route path="/secret">
             <Secret />
+          </Route>
+          <Route path="/edge-test">
+            <EdgeTest />
           </Route>
           <Route path="/about">
             <About />

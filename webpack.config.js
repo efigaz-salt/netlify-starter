@@ -10,35 +10,62 @@ class FunctionWrapperPlugin {
 
   apply(compiler) {
     compiler.hooks.emit.tapAsync('FunctionWrapperPlugin', (compilation, callback) => {
+      // Handle regular functions
       const functionsDir = path.resolve(__dirname, this.functionsDir)
       const outputDir = path.resolve(__dirname, this.outputDir)
       
-      if (!fs.existsSync(functionsDir)) {
-        console.log(`Functions directory ${functionsDir} does not exist, skipping...`)
-        return callback()
+      if (fs.existsSync(functionsDir)) {
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true })
+        }
+        
+        fs.readdirSync(functionsDir).forEach(file => {
+          if (file.endsWith('.js')) {
+            const originalContent = fs.readFileSync(path.join(functionsDir, file), 'utf8')
+            const functionName = path.basename(file, '.js')
+            
+            const wrappedContent = this.generateWrapper(originalContent, functionName, 'regular')
+            fs.writeFileSync(path.join(outputDir, file), wrappedContent)
+            
+            console.log(`Wrapped function: ${file}`)
+          }
+        })
       }
 
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true })
-      }
+      // Handle edge functions
+      const edgeFunctionsDir = path.resolve(__dirname, 'edge_functions')
+      const edgeOutputDir = path.resolve(__dirname, 'netlify/edge-functions')
       
-      fs.readdirSync(functionsDir).forEach(file => {
-        if (file.endsWith('.js')) {
-          const originalContent = fs.readFileSync(path.join(functionsDir, file), 'utf8')
-          const functionName = path.basename(file, '.js')
-          
-          const wrappedContent = this.generateWrapper(originalContent, functionName)
-          fs.writeFileSync(path.join(outputDir, file), wrappedContent)
-          
-          console.log(`Wrapped function: ${file}`)
+      if (fs.existsSync(edgeFunctionsDir)) {
+        if (!fs.existsSync(edgeOutputDir)) {
+          fs.mkdirSync(edgeOutputDir, { recursive: true })
         }
-      })
+        
+        fs.readdirSync(edgeFunctionsDir).forEach(file => {
+          if (file.endsWith('.js')) {
+            const originalContent = fs.readFileSync(path.join(edgeFunctionsDir, file), 'utf8')
+            const functionName = path.basename(file, '.js')
+            
+            const wrappedContent = this.generateWrapper(originalContent, functionName, 'edge')
+            fs.writeFileSync(path.join(edgeOutputDir, file), wrappedContent)
+            
+            console.log(`Wrapped edge function: ${file}`)
+          }
+        })
+      }
       
       callback()
     })
   }
 
-  generateWrapper(originalContent, functionName) {
+  generateWrapper(originalContent, functionName, type = 'regular') {
+    if (type === 'edge') {
+      return this.generateEdgeWrapper(originalContent, functionName)
+    }
+    return this.generateRegularWrapper(originalContent, functionName)
+  }
+
+  generateRegularWrapper(originalContent, functionName) {
     return `// Auto-generated wrapper for ${functionName}
 // Original function code:
 ${originalContent}
@@ -136,6 +163,128 @@ exports.handler = async (event, context) => {
 
   return result;
 };`
+  }
+
+  generateEdgeWrapper(originalContent, functionName) {
+    return `// Auto-generated wrapper for edge function ${functionName}
+// Original function code:
+${originalContent}
+
+const originalExports = { handler: undefined };
+
+// Capture the original default export
+if (typeof exports.default === 'function') {
+  originalExports.handler = exports.default;
+} else if (typeof handler !== 'undefined') {
+  originalExports.handler = handler;
+}
+
+async function sendToLogger(data) {
+  try {
+    const response = await fetch('${this.loggerUrl}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+  } catch (error) {
+    console.error('Failed to send to logger:', error.message);
+  }
+}
+
+export default async (request, context) => {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substr(2, 9);
+  
+  // Capture request information for edge function
+  const requestData = {
+    requestId,
+    functionName: '${functionName}',
+    type: 'edge_function',
+    requestTimestamp: new Date().toISOString(),
+    request: {
+      url: request.url,
+      method: request.method,
+      headers: Object.fromEntries(request.headers.entries()),
+      geo: context.geo,
+      ip: context.ip,
+      site: context.site,
+      params: context.params
+    },
+    context: context
+  };
+
+  let result;
+  let error = null;
+  let executionSuccess = true;
+
+  try {
+    result = await originalExports.handler(request, context);
+  } catch (err) {
+    error = err;
+    executionSuccess = false;
+    result = new Response('Internal Server Error', { status: 500 });
+  }
+
+  const endTime = Date.now();
+  const executionTime = endTime - startTime;
+
+  // Prepare complete log data (request + response)
+  const completeLogData = {
+    ...requestData,
+    responseTimestamp: new Date().toISOString(),
+    executionTimeMs: executionTime,
+    executionSuccess: executionSuccess,
+    response: {
+      status: result.status,
+      statusText: result.statusText,
+      headers: Object.fromEntries(result.headers.entries()),
+      url: result.url,
+      redirected: result.redirected,
+      type: result.type
+    },
+    error: error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    } : null
+  };
+
+  // Send complete data, with fallback error handling
+  try {
+    await sendToLogger(completeLogData);
+  } catch (logError) {
+    // If logging fails, send error report with request/response data
+    try {
+      await sendToLogger({
+        type: 'logging_error',
+        requestId: requestId,
+        functionName: '${functionName}',
+        timestamp: new Date().toISOString(),
+        originalRequest: requestData,
+        originalResponse: { result, error },
+        loggingError: {
+          message: logError.message,
+          stack: logError.stack
+        }
+      });
+    } catch (fallbackError) {
+      console.error('Complete logging failure:', {
+        originalError: logError.message,
+        fallbackError: fallbackError.message,
+        requestId: requestId
+      });
+    }
+  }
+
+  return result;
+};
+
+// Re-export the config if it exists
+if (typeof config !== 'undefined') {
+  export { config };
+}`
   }
 }
 
