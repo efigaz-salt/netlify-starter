@@ -1,7 +1,6 @@
 exports.handler = async function (event, context) {
   let name = event.path.split("/").pop()
   if (name === "meowsalot") {
-    
     return {
       statusCode: 200,
       headers: { "Cache-Control": "max-age=10" },

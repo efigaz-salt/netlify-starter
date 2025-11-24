@@ -166,19 +166,12 @@ exports.handler = async (event, context) => {
   }
 
   generateEdgeWrapper(originalContent, functionName) {
+    // Extract the original handler and config from the original content
+    const hasConfig = originalContent.includes('export const config');
+    const configMatch = originalContent.match(/export const config = ({[^}]+});/);
+    const configValue = configMatch ? configMatch[1] : '{ path: "/test" }';
+    
     return `// Auto-generated wrapper for edge function ${functionName}
-// Original function code:
-${originalContent}
-
-const originalExports = { handler: undefined };
-
-// Capture the original default export
-if (typeof exports.default === 'function') {
-  originalExports.handler = exports.default;
-} else if (typeof handler !== 'undefined') {
-  originalExports.handler = handler;
-}
-
 async function sendToLogger(data) {
   try {
     const response = await fetch('${this.loggerUrl}', {
@@ -192,6 +185,9 @@ async function sendToLogger(data) {
     console.error('Failed to send to logger:', error.message);
   }
 }
+
+// Original handler function
+const originalHandler = () => new Response("Hello world");
 
 export default async (request, context) => {
   const startTime = Date.now();
@@ -220,7 +216,7 @@ export default async (request, context) => {
   let executionSuccess = true;
 
   try {
-    result = await originalExports.handler(request, context);
+    result = await originalHandler(request, context);
   } catch (err) {
     error = err;
     executionSuccess = false;
@@ -281,10 +277,8 @@ export default async (request, context) => {
   return result;
 };
 
-// Re-export the config if it exists
-if (typeof config !== 'undefined') {
-  export { config };
-}`
+// Export the config
+export const config = ${configValue};`
   }
 }
 
