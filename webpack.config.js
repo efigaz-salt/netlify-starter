@@ -65,38 +65,24 @@ exports.handler = async (event, context) => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substr(2, 9);
   
-  // Capture all request information - raw event object
+  // Capture request information
   const requestData = {
     requestId,
     functionName: '${functionName}',
-    timestamp: new Date().toISOString(),
+    requestTimestamp: new Date().toISOString(),
     event: event,
-    context: {
-      functionName: context.functionName,
-      functionVersion: context.functionVersion,
-      invokedFunctionArn: context.invokedFunctionArn,
-      memoryLimitInMB: context.memoryLimitInMB,
-      awsRequestId: context.awsRequestId,
-      logGroupName: context.logGroupName,
-      logStreamName: context.logStreamName,
-      remainingTimeInMillis: context.getRemainingTimeInMillis ? context.getRemainingTimeInMillis() : null,
-      clientContext: context.clientContext
-    }
+    context: context,
   };
-
-  // Send request data (non-blocking)
-  sendToLogger({
-    type: 'request',
-    ...requestData
-  }).catch(console.error);
 
   let result;
   let error = null;
+  let executionSuccess = true;
 
   try {
     result = await originalHandler(event, context);
   } catch (err) {
     error = err;
+    executionSuccess = false;
     result = {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
@@ -107,19 +93,13 @@ exports.handler = async (event, context) => {
   const endTime = Date.now();
   const executionTime = endTime - startTime;
 
-  // Capture all response information
-  const responseData = {
-    requestId,
-    functionName: '${functionName}',
-    timestamp: new Date().toISOString(),
+  // Prepare complete log data (request + response)
+  const completeLogData = {
+    ...requestData,
+    responseTimestamp: new Date().toISOString(),
     executionTimeMs: executionTime,
-    response: {
-      statusCode: result.statusCode,
-      headers: result.headers,
-      multiValueHeaders: result.multiValueHeaders,
-      body: result.body,
-      isBase64Encoded: result.isBase64Encoded
-    },
+    executionSuccess: executionSuccess,
+    response: result,
     error: error ? {
       message: error.message,
       stack: error.stack,
@@ -127,11 +107,32 @@ exports.handler = async (event, context) => {
     } : null
   };
 
-  // Send response data (non-blocking)
-  sendToLogger({
-    type: 'response',
-    ...responseData
-  }).catch(console.error);
+  // Send complete data, with fallback error handling
+  try {
+    await sendToLogger(completeLogData);
+  } catch (logError) {
+    // If logging fails, send error report with request/response data
+    try {
+      await sendToLogger({
+        type: 'logging_error',
+        requestId: requestId,
+        functionName: '${functionName}',
+        timestamp: new Date().toISOString(),
+        originalRequest: requestData,
+        originalResponse: { result, error },
+        loggingError: {
+          message: logError.message,
+          stack: logError.stack
+        }
+      });
+    } catch (fallbackError) {
+      console.error('Complete logging failure:', {
+        originalError: logError.message,
+        fallbackError: fallbackError.message,
+        requestId: requestId
+      });
+    }
+  }
 
   return result;
 };`
