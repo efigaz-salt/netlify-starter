@@ -4,6 +4,10 @@
   command  = "npm run build"
   functions = "netlify/functions/"
   edge_functions = "netlify/edge_functions/"
+[[edge_functions]]
+  function = "test-edge"
+  path = "/test"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
