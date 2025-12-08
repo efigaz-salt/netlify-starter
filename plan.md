@@ -149,6 +149,10 @@ POST   /features/evaluate - Evaluate flags for user context
 GET    /products         - List products (search, filters, pagination)
 GET    /products/:id     - Get product with related
 POST   /products/inventory/check - Check inventory
+GET    /test/delay       - Configurable delay response (query: delay=<ms>)
+GET    /test/large       - Large response generator (query: size=<MB>)
+GET    /test/echo        - Echo request details
+GET    /test/status/:code - Return specific HTTP status code
 ```
 
 **3.4 API Gateway Deployment** ✅ COMPLETE
@@ -156,7 +160,14 @@ POST   /products/inventory/check - Check inventory
 - URL: `https://vysuq98i7c.execute-api.eu-north-1.amazonaws.com/v1`
 - Tags: `CreatedBy=EfiG`, `Project=netlify-mock-api`, `ManagedBy=terraform`
 
-#### Priority 3.5: Vue UI API Integration ✅ COMPLETE
+**3.5 Test Endpoints** (`terraform/lambdas/src/handlers/test.js`) ✅ COMPLETE
+- [x] `GET/POST /test/delay?delay=<ms>` - Configurable delay (up to 2 min)
+- [x] `GET/POST /test/large?size=<MB>` - Large response generator
+- [x] `GET/POST /test/echo` - Echo request details
+- [x] `GET /test/status/:code` - Return specific HTTP status codes
+- [x] `GET /test/timeout` - Timeout simulation
+
+#### Priority 3.6: Vue UI API Integration ✅ COMPLETE
 **Composables** (`composables/`)
 - [x] `useApi.ts` - Base API composable with SSR-compatible `$fetch`
 - [x] `useAnalytics.ts` - Dashboard stats, recent activity, analytics data
@@ -165,6 +176,7 @@ POST   /products/inventory/check - Check inventory
 **Pages Updated**
 - [x] `pages/index.vue` - Dashboard using real API data with auto-refresh
 - [x] `pages/features.vue` - Feature flags from API with toggle support
+- [x] `pages/test.vue` - API Test Console with delay/large response/echo/status tests
 
 **Data Flow**
 ```
@@ -259,6 +271,7 @@ netlify-client-env/
 │   ├── index.vue                   # ✅ Dashboard with live stats
 │   ├── analytics.vue               # ✅ Analytics tabs
 │   ├── features.vue                # ✅ Feature flags from API
+│   ├── test.vue                    # ✅ API Test Console (delay, large, echo, status)
 │   └── settings.vue                # ✅ Settings
 │
 ├── components/                     # ✅ Complete
@@ -289,7 +302,8 @@ netlify-client-env/
 │               ├── users.js        # ✅ User CRUD API
 │               ├── analytics.js    # ✅ Analytics API
 │               ├── features.js     # ✅ Feature flags + experiments
-│               └── products.js     # ✅ Products API
+│               ├── products.js     # ✅ Products API
+│               └── test.js         # ✅ Test endpoints (delay, large, echo, status)
 │
 ├── mocks/                          # ❌ Empty directories - needs data
 │   ├── google-analytics/
@@ -403,3 +417,24 @@ curl http://localhost:8888/api/features/experiments
 4. **GTM-managed integrations** - GA, Dynatrace, Quantum Metrics are all managed via GTM, not direct SDK integration.
 
 5. **Branch-based deploys** - Each branch (dev/staging/prod) has its own environment variables in Netlify.
+
+6. **Netlify Deployment** - Site deployed at `https://efi-test1-ts.netlify.app`
+   - GitHub repo: `github.com/efigaz-salt/netlify-ts`
+   - Auto-deploys on push to master
+
+---
+
+## AWS/API Gateway Limits (Discovered)
+
+| Resource | Limit | Notes |
+|----------|-------|-------|
+| API Gateway REST API Timeout | **29 seconds** | Hard limit, cannot be configured higher |
+| Lambda Sync Response | **6 MB** | Requests >5.5MB may fail |
+| Lambda Timeout | 130 seconds | Configured in terraform.tfvars |
+| API Gateway HTTP API Timeout | 30 seconds | Alternative (not used) |
+
+**Workarounds for longer operations:**
+- Lambda Function URLs (bypass API Gateway, up to 15 min)
+- WebSocket API (connection-based, no request timeout)
+- Async pattern (return task ID, poll for result)
+- ALB (configurable up to 4000 seconds)
