@@ -81,6 +81,20 @@ resource "aws_api_gateway_resource" "products_proxy" {
   path_part   = "{proxy+}"
 }
 
+# /test
+resource "aws_api_gateway_resource" "test" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_rest_api.main.root_resource_id
+  path_part   = "test"
+}
+
+# /test/{proxy+}
+resource "aws_api_gateway_resource" "test_proxy" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.test.id
+  path_part   = "{proxy+}"
+}
+
 # ============================================================================
 # Methods and Integrations
 # ============================================================================
@@ -238,6 +252,40 @@ resource "aws_api_gateway_integration" "products_proxy_any" {
   uri                     = aws_lambda_function.api.invoke_arn
 }
 
+# Test - ANY method
+resource "aws_api_gateway_method" "test_any" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.test.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "test_any" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.test.id
+  http_method             = aws_api_gateway_method.test_any.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.api.invoke_arn
+}
+
+# Test proxy - ANY method
+resource "aws_api_gateway_method" "test_proxy_any" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.test_proxy.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "test_proxy_any" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.test_proxy.id
+  http_method             = aws_api_gateway_method.test_proxy_any.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.api.invoke_arn
+}
+
 # ============================================================================
 # CORS Configuration
 # ============================================================================
@@ -297,6 +345,18 @@ module "cors_products_proxy" {
   resource_id = aws_api_gateway_resource.products_proxy.id
 }
 
+module "cors_test" {
+  source  = "./modules/cors"
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.test.id
+}
+
+module "cors_test_proxy" {
+  source  = "./modules/cors"
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.test_proxy.id
+}
+
 # ============================================================================
 # Deployment and Stage
 # ============================================================================
@@ -314,6 +374,8 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.features_proxy_any,
     aws_api_gateway_integration.products_any,
     aws_api_gateway_integration.products_proxy_any,
+    aws_api_gateway_integration.test_any,
+    aws_api_gateway_integration.test_proxy_any,
   ]
 
   triggers = {
@@ -327,6 +389,8 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_resource.features_proxy.id,
       aws_api_gateway_resource.products.id,
       aws_api_gateway_resource.products_proxy.id,
+      aws_api_gateway_resource.test.id,
+      aws_api_gateway_resource.test_proxy.id,
     ]))
   }
 

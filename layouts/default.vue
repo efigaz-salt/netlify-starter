@@ -17,6 +17,7 @@
               <NuxtLink to="/" class="nav-link" active-class="active">Dashboard</NuxtLink>
               <NuxtLink to="/analytics" class="nav-link" active-class="active">Analytics</NuxtLink>
               <NuxtLink to="/features" class="nav-link" active-class="active">Feature Flags</NuxtLink>
+              <NuxtLink to="/test" class="nav-link" active-class="active">API Test</NuxtLink>
               <NuxtLink to="/settings" class="nav-link" active-class="active">Settings</NuxtLink>
             </div>
           </div>
