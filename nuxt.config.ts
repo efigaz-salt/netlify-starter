@@ -18,6 +18,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiUrl: process.env.API_URL || 'http://localhost:3000/api',
+      sseUrl: process.env.SSE_FUNCTION_URL || '',
       environment: process.env.ENVIRONMENT || 'development'
     }
   }

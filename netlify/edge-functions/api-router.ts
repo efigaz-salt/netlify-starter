@@ -8,6 +8,7 @@ import type { Context } from "@netlify/edge-functions";
 
 interface ApiRouterConfig {
   backendUrl: string;
+  sseUrl: string;
   timeout: number;
   retries: number;
 }
@@ -16,9 +17,12 @@ const getConfig = (): ApiRouterConfig => {
   // Get backend URL from environment (set after Terraform deployment)
   // Format: https://{api-id}.execute-api.{region}.amazonaws.com/{stage}
   const backendUrl = Deno.env.get("API_GATEWAY_URL") || Deno.env.get("API_URL") || "";
+  // SSE Lambda Function URL for streaming
+  const sseUrl = Deno.env.get("SSE_FUNCTION_URL") || "";
 
   return {
     backendUrl,
+    sseUrl,
     timeout: parseInt(Deno.env.get("API_TIMEOUT") || "30000", 10),
     retries: parseInt(Deno.env.get("API_RETRIES") || "2", 10),
   };
@@ -44,6 +48,98 @@ interface ProxyLogEntry {
 const log = (entry: ProxyLogEntry): void => {
   console.log(JSON.stringify(entry));
 };
+
+// ============================================================================
+// SSE Proxy (for Lambda Function URL with Response Streaming)
+// ============================================================================
+
+async function proxyToSSE(
+  request: Request,
+  config: ApiRouterConfig,
+  traceId: string
+): Promise<Response> {
+  const url = new URL(request.url);
+  // Build SSE URL with query params
+  const sseUrl = new URL(config.sseUrl);
+  url.searchParams.forEach((value, key) => {
+    sseUrl.searchParams.set(key, value);
+  });
+
+  const startTime = Date.now();
+
+  log({
+    type: "sse_proxy_request",
+    timestamp: new Date().toISOString(),
+    traceId,
+    method: request.method,
+    path: url.pathname,
+    backendUrl: sseUrl.toString(),
+  });
+
+  try {
+    const response = await fetch(sseUrl.toString(), {
+      method: request.method,
+      headers: {
+        "X-Trace-ID": traceId,
+        "Accept": "text/event-stream",
+      },
+    });
+
+    const latency = Date.now() - startTime;
+
+    log({
+      type: "sse_proxy_connected",
+      timestamp: new Date().toISOString(),
+      traceId,
+      method: request.method,
+      path: url.pathname,
+      backendUrl: sseUrl.toString(),
+      status: response.status,
+      latency,
+    });
+
+    // Return streaming response
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Trace-ID": traceId,
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch (error) {
+    const latency = Date.now() - startTime;
+
+    log({
+      type: "sse_proxy_error",
+      timestamp: new Date().toISOString(),
+      traceId,
+      method: request.method,
+      path: url.pathname,
+      backendUrl: sseUrl.toString(),
+      error: (error as Error).message,
+      latency,
+    });
+
+    return new Response(
+      JSON.stringify({
+        error: "SSE Connection Failed",
+        message: (error as Error).message,
+        traceId,
+      }),
+      {
+        status: 503,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Trace-ID": traceId,
+        },
+      }
+    );
+  }
+}
 
 // ============================================================================
 // Backend Proxy
@@ -188,6 +284,42 @@ export default async function apiRouter(
     path,
     backendUrl: config.backendUrl,
   });
+
+  // Route /api/sse to SSE Lambda Function URL
+  if (path === "/api/sse" || path.startsWith("/api/sse?")) {
+    if (!config.sseUrl) {
+      return new Response(
+        JSON.stringify({
+          error: "Configuration Error",
+          message: "SSE Function URL not configured. Set SSE_FUNCTION_URL environment variable.",
+          traceId,
+        }),
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Trace-ID": traceId,
+          },
+        }
+      );
+    }
+
+    // Handle CORS preflight for SSE
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, X-Trace-ID",
+          "Access-Control-Max-Age": "86400",
+          "X-Trace-ID": traceId,
+        },
+      });
+    }
+
+    return proxyToSSE(request, config, traceId);
+  }
 
   // Check if backend URL is configured
   if (!config.backendUrl) {
