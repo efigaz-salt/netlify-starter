@@ -1,0 +1,71 @@
+[build]
+  command = "npm run build"
+  functions = "netlify/functions"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Edge functions
+[[edge_functions]]
+  function = "security"
+  path = "/*"
+  excludedPath = ["/_nuxt/*", "/__nuxt/*", "/favicon.ico"]
+
+[[edge_functions]]
+  function = "api-router"
+  path = "/api/*"
+
+# [[edge_functions]]
+#   function = "redirects"
+#   path = "/*"
+
+# [[edge_functions]]
+#   function = "caching"
+#   path = "/*"
+
+# Environment-specific configuration
+# NOTE: Set API_GATEWAY_URL and other secrets in Netlify Dashboard > Site Settings > Environment Variables
+# Required env vars: API_GATEWAY_URL, ALLOWED_ORIGINS, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX
+
+[context.production.environment]
+  NODE_ENV = "production"
+  ENVIRONMENT = "production"
+  # API_GATEWAY_URL should be set in Netlify Dashboard for security
+
+[context.staging.environment]
+  NODE_ENV = "staging"
+  ENVIRONMENT = "staging"
+
+[context.development.environment]
+  NODE_ENV = "development"
+  ENVIRONMENT = "development"
+
+# Branch deploy contexts
+[context.branch-deploy.environment]
+  NODE_ENV = "development"
+  ENVIRONMENT = "development"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "development"
+  ENVIRONMENT = "preview"
+
+[[redirects]]
+  from = "/old-path/*"
+  to = "/new-path/:splat"
+  status = 301
+
+# SPA fallback - let edge functions handle /api/* first
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"

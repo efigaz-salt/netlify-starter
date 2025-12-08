@@ -1,0 +1,25 @@
+# ============================================================================
+# Terraform Variables - Example Configuration
+# ============================================================================
+# Copy this file to terraform.tfvars and modify as needed
+
+# AWS Configuration
+aws_region = "eu-north-1"
+
+# Environment: development, staging, or production
+environment = "development"
+
+# Project name (used for resource naming)
+project_name = "netlify-mock-api"
+
+# Lambda Configuration
+lambda_runtime = "nodejs20.x"
+lambda_timeout = 30
+lambda_memory  = 256
+
+# API Gateway Configuration
+api_stage_name     = "v1"
+enable_api_logging = true
+
+# CORS Configuration
+cors_allowed_origins = ["*"]

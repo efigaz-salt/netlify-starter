@@ -1,0 +1,22 @@
+# Static redirects for legacy URLs
+/legacy/*          /new/:splat                   301
+/docs/*            https://docs.example.com/:splat  301
+
+# API proxying - will be handled by edge functions later
+# /api/*             /.netlify/edge-functions/api-router  200
+
+# Geographic redirects - will be handled by edge function later
+# /geo/*             /.netlify/edge-functions/redirects   200
+
+# A/B testing redirects - will be handled by edge function later
+# /experiment/*      /.netlify/edge-functions/redirects   200
+
+# Security headers and CORS - will be handled by edge function later
+# /*                 /.netlify/edge-functions/security    200
+
+# Cache optimization - will be handled by edge function later
+# /static/*          /.netlify/edge-functions/caching     200
+# /assets/*          /.netlify/edge-functions/caching     200
+
+# SPA fallback for client-side routing
+/*                 /index.html                          200
