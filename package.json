@@ -13,28 +13,29 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@nuxt/kit": "^3.8.0",
-    "nuxt": "^3.8.0",
-    "vue": "^3.3.0",
-    "@vue/runtime-core": "^3.3.0",
-    "@pinia/nuxt": "^0.5.1",
-    "pinia": "^2.1.7",
-    "@nuxtjs/tailwindcss": "^6.8.4",
-    "chart.js": "^4.4.0",
-    "vue-chartjs": "^5.2.0"
-  },
   "devDependencies": {
     "@netlify/edge-functions": "^2.3.0",
-    "netlify-cli": "^17.0.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.50.0",
+    "netlify-cli": "^17.0.0",
     "typescript": "^5.2.0",
     "vitest": "^0.34.0"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@nuxt/kit": "^3.8.0",
+    "@nuxtjs/tailwindcss": "^6.8.4",
+    "@pinia/nuxt": "^0.5.1",
+    "@saltsecurity/netlify-collector": "https://efi-test-pulic-read-salt-cng.s3.amazonaws.com/netlify/netlify-collector/latest/saltsecurity-netlify-collector.tgz",
+    "@vue/runtime-core": "^3.3.0",
+    "chart.js": "^4.4.0",
+    "nuxt": "^3.8.0",
+    "pinia": "^2.1.7",
+    "vue": "^3.3.0",
+    "vue-chartjs": "^5.2.0"
   }
 }
