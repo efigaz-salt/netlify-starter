@@ -16,13 +16,13 @@ const collector = createCollector({
   hybridUrl: Netlify.env.get('SALT_HYBRID_URL')!,
   hybridToken: Netlify.env.get('SALT_HYBRID_TOKEN')!,
   debug: Netlify.env.get('SALT_DEBUG') === 'true',
-
+  
   // Optional metadata
-  collectorUuid: 'netlify-edge-001',
+  collectorUuid: Netlify.env.get('SALT_COLLECTOR_UUID') || "undefined UUID",
   collectorVersion: '0.1.0-efi-test-8',
   collectorPlatform: 'netlify',
   
-  caCert: Netlify.env.get('SALT_HYBRID_CA'),
+
   collectorLabels: {
     environment: Netlify.env.get('CONTEXT') || 'production',
     site: Netlify.env.get('SITE_NAME') || 'unknown',
