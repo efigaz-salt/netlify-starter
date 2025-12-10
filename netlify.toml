@@ -7,15 +7,15 @@
   NODE_VERSION = "20"
 
 # Edge functions
+# Salt Security Collector - Must be first to capture all traffic
+[[edge_functions]]
+  function = "salt-collector"
+  path = "/api/*"
+
 [[edge_functions]]
   function = "security"
   path = "/*"
   excludedPath = ["/_nuxt/*", "/__nuxt/*", "/favicon.ico"]
-
-# Salt Security Collector - Commented out until package is verified
- [[edge_functions]]
-   function = "salt-collector"
-   path = "/api/*"
 
 [[edge_functions]]
   function = "api-router"
