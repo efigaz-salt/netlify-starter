@@ -19,15 +19,9 @@ const collector = createCollector({
   
   // Optional metadata
   collectorUuid: Netlify.env.get('SALT_COLLECTOR_UUID') || "undefined UUID",
-  collectorVersion: '0.1.0-efi-test-8',
   collectorPlatform: 'netlify',
-  
 
-  collectorLabels: {
-    environment: Netlify.env.get('CONTEXT') || 'production',
-    site: Netlify.env.get('SITE_NAME') || 'unknown',
-    region: Netlify.env.get('DEPLOY_PRIME_URL') || 'unknown',
-  },
+ 
 });
 
 export default async (request: Request, context: Context) => {
