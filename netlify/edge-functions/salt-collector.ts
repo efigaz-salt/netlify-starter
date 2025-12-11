@@ -25,13 +25,31 @@ const collector = createCollector({
 });
 
 export default async (request: Request, context: Context) => {
+  // IMPORTANT: Clone the request BEFORE calling context.next() to capture request bodies
+  // This is necessary for POST/PUT/PATCH requests with bodies
+  const requestForCollection = request.clone();
+
   // Pass the request through to the next handler in the chain
   // This allows security.ts and api-router.ts to continue processing
   const response = await context.next();
 
-  // Collect traffic data (fire-and-forget, doesn't block the response)
-  // This sends the request/response pair to Salt Security for analysis
-  return await collector.collect(request, response);
+  // Debug: Log request and response details
+  const requestBody = await requestForCollection.clone().text();
+  const responseBody = await response.clone().text();
+
+  console.log('[salt-collector] Request:', {
+    method: requestForCollection.method,
+    url: requestForCollection.url,
+    body: requestBody
+  });
+
+  console.log('[salt-collector] Response:', {
+    status: response.status,
+    body: responseBody
+  });
+
+  // Collect traffic data using the cloned request (fire-and-forget, doesn't block the response)
+  return collector.collect(requestForCollection, response);
 };
 
 // Configure which paths this edge function runs on
