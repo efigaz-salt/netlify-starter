@@ -285,6 +285,26 @@ export default async function apiRouter(
     backendUrl: config.backendUrl,
   });
 
+  // Handle internal redirects (for Salt Security testing)
+  if (path === "/api/larges/newone") {
+    // Rewrite the URL to /api/test/large
+    const newUrl = new URL(request.url);
+    newUrl.pathname = "/api/test/large";
+    const newRequest = new Request(newUrl.toString(), request);
+
+    log({
+      type: "internal_redirect",
+      timestamp: new Date().toISOString(),
+      traceId,
+      method: request.method,
+      path,
+      backendUrl: newUrl.toString(),
+    });
+
+    // Continue processing with the new path
+    return proxyToBackend(newRequest, config, traceId);
+  }
+
   // Route /api/sse to SSE Lambda Function URL
   if (path === "/api/sse" || path.startsWith("/api/sse?")) {
     if (!config.sseUrl) {

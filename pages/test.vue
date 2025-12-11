@@ -106,6 +106,13 @@
             >
               {{ largeLoading ? 'Loading...' : 'Run Large Response Test' }}
             </button>
+            <button
+              @click="runLargeTest2"
+              :disabled="largeLoading"
+              class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ largeLoading ? 'Loading...' : 'Test /larges/newone Redirect' }}
+            </button>
           </div>
 
           <!-- Results -->
@@ -328,6 +335,48 @@ const runLargeTest = async () => {
       generationTimeMs: response.generationTimeMs,
       roundTrip,
       note: response.note || undefined,
+    }
+  } catch (e) {
+    largeError.value = e instanceof Error ? e.message : 'Request failed'
+  } finally {
+    largeLoading.value = false
+  }
+}
+
+const runLargeTest2 = async () => {
+  largeLoading.value = true
+  largeResult.value = null
+  largeError.value = null
+
+  const startTime = Date.now()
+
+  try {
+    const url = `/api/larges/newone?size=${responseSizeMB.value}`
+    const options: Parameters<typeof $fetch>[1] = {
+      method: largeMethod.value as 'GET' | 'POST',
+    }
+
+    if (largeMethod.value === 'POST') {
+      options.body = { size: responseSizeMB.value }
+    }
+
+    const response = await $fetch<{
+      requestedSizeMB: number
+      actualSizeMB: number
+      itemCount: number
+      generationTimeMs: number
+      note?: string
+    }>(url, options)
+
+    const roundTrip = Date.now() - startTime
+
+    largeResult.value = {
+      requestedSizeMB: response.requestedSizeMB,
+      actualSizeMB: response.actualSizeMB,
+      itemCount: response.itemCount,
+      generationTimeMs: response.generationTimeMs,
+      roundTrip,
+      note: response.note ? `[via /larges/newone redirect] ${response.note}` : '[via /larges/newone redirect]',
     }
   } catch (e) {
     largeError.value = e instanceof Error ? e.message : 'Request failed'
