@@ -15,13 +15,15 @@ import type { Context } from '@netlify/edge-functions';
 const collector = createCollector({
   hybridUrl: Netlify.env.get('SALT_HYBRID_URL')!,
   hybridToken: Netlify.env.get('SALT_HYBRID_TOKEN')!,
+  collectorUuid: Netlify.env.get('SALT_COLLECTOR_UUID')!,
   debug: Netlify.env.get('SALT_DEBUG') === 'true',
-  
-  // Optional metadata
-  collectorUuid: Netlify.env.get('SALT_COLLECTOR_UUID') || "undefined UUID",
-  collectorPlatform: 'netlify',
 
- 
+  // Optional metadata
+  collectorPlatform: 'netlify',
+  collectorLabels: {
+    environment: Netlify.env.get('CONTEXT') || 'production',
+    site: Netlify.env.get('SITE_NAME') || 'unknown',
+  },
 });
 
 export default async (request: Request, context: Context) => {
@@ -48,8 +50,9 @@ export default async (request: Request, context: Context) => {
     body: responseBody
   });
 
-  // Collect traffic data using the cloned request (fire-and-forget, doesn't block the response)
-  return collector.collect(requestForCollection, response);
+  // Collect traffic data using the cloned request
+  // This waits for bodies to be collected and sent before returning
+  return await collector.collect(requestForCollection, response);
 };
 
 // Configure which paths this edge function runs on
