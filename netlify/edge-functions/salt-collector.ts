@@ -22,7 +22,6 @@ const collector = createCollector({
   collectorPlatform: 'netlify',
   collectorLabels: {
     environment: Netlify.env.get('CONTEXT') || 'production',
-    site: Netlify.env.get('SITE_NAME') || 'unknown',
   },
 });
 
@@ -32,23 +31,8 @@ export default async (request: Request, context: Context) => {
   const requestForCollection = request.clone();
 
   // Pass the request through to the next handler in the chain
-  // This allows security.ts and api-router.ts to continue processing
+  // This allows next edge functions and the backend to process it
   const response = await context.next();
-
-  // Debug: Log request and response details
-  const requestBody = await requestForCollection.clone().text();
-  const responseBody = await response.clone().text();
-
-  console.log('[salt-collector] Request:', {
-    method: requestForCollection.method,
-    url: requestForCollection.url,
-    body: requestBody
-  });
-
-  console.log('[salt-collector] Response:', {
-    status: response.status,
-    body: responseBody
-  });
 
   // Collect traffic data using the cloned request
   // This waits for bodies to be collected and sent before returning
