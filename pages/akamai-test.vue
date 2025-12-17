@@ -222,7 +222,8 @@
 </template>
 
 <script setup lang="ts">
-const BACKEND_URL = 'https://akamaitest.salt-cng-team-test.org'
+// All requests go through /api/akamai/* which proxies to akamaitest.salt-cng-team-test.org
+// This ensures Salt collector captures all traffic
 
 // Health Check
 const healthLoading = ref(false)
@@ -233,7 +234,7 @@ const runHealthCheck = async () => {
   healthResult.value = null
 
   try {
-    const response = await $fetch(`${BACKEND_URL}/health`)
+    const response = await $fetch('/api/akamai/health')
     healthResult.value = response
   } catch (e) {
     healthResult.value = { error: e instanceof Error ? e.message : 'Request failed' }
@@ -255,7 +256,7 @@ const runSimpleTest = async (method: 'GET' | 'POST') => {
     if (method === 'POST') {
       options.body = { test: 'data', timestamp: new Date().toISOString() }
     }
-    const response = await $fetch(`${BACKEND_URL}/api/simple`, options)
+    const response = await $fetch('/api/akamai/api/simple', options)
     simpleResult.value = response
   } catch (e) {
     simpleResult.value = { error: e instanceof Error ? e.message : 'Request failed' }
@@ -276,7 +277,7 @@ const runLargePayloadTest = async () => {
   const startTime = Date.now()
 
   try {
-    const response = await $fetch(`${BACKEND_URL}/api/payload/large?size=${payloadSize.value}`)
+    const response = await $fetch(`/api/akamai/api/payload/large?size=${payloadSize.value}`)
     const roundTrip = Date.now() - startTime
     largeResult.value = { ...response, roundTrip }
   } catch (e) {
@@ -303,7 +304,7 @@ const runDelayTest = async () => {
   }, 1000)
 
   try {
-    const response = await $fetch(`${BACKEND_URL}/api/long/delay?delay=${delaySeconds.value * 1000}`)
+    const response = await $fetch(`/api/akamai/api/long/delay?delay=${delaySeconds.value * 1000}`)
     delayResult.value = response
   } catch (e) {
     delayResult.value = { error: e instanceof Error ? e.message : 'Request failed' }
@@ -323,7 +324,7 @@ const runStatusTest = async (code: number) => {
   statusResult.value = null
 
   try {
-    const response = await $fetch<any>(`${BACKEND_URL}/api/status/${code}`, {
+    const response = await $fetch<any>(`/api/akamai/api/status/${code}`, {
       ignoreResponseError: true,
     })
     statusResult.value = { status: code, data: response }
@@ -345,7 +346,7 @@ const startSSE = () => {
   sseEvents.value = []
   sseConnected.value = true
 
-  eventSource = new EventSource(`${BACKEND_URL}/api/sse/stream?count=${sseCount.value}`)
+  eventSource = new EventSource(`/api/akamai/api/sse/stream?count=${sseCount.value}`)
 
   eventSource.onmessage = (e) => {
     sseEvents.value.push({ type: 'message', data: e.data })

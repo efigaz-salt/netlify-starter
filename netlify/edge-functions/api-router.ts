@@ -305,6 +305,68 @@ export default async function apiRouter(
     return proxyToBackend(newRequest, config, traceId);
   }
 
+  // Handle Akamai backend proxy routes
+  if (path.startsWith("/api/akamai/")) {
+    const akamaiBackend = "https://akamaitest.salt-cng-team-test.org";
+    const akamaiPath = path.replace("/api/akamai", "");
+    const akamaiUrl = `${akamaiBackend}${akamaiPath}${url.search}`;
+
+    log({
+      type: "akamai_proxy",
+      timestamp: new Date().toISOString(),
+      traceId,
+      method: request.method,
+      path,
+      backendUrl: akamaiUrl,
+    });
+
+    try {
+      const headers = new Headers(request.headers);
+      headers.set("X-Trace-ID", traceId);
+      headers.delete("host");
+
+      const response = await fetch(akamaiUrl, {
+        method: request.method,
+        headers,
+        body: ["GET", "HEAD", "OPTIONS"].includes(request.method) ? undefined : request.body,
+      });
+
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set("X-Trace-ID", traceId);
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
+    } catch (error) {
+      log({
+        type: "akamai_proxy_error",
+        timestamp: new Date().toISOString(),
+        traceId,
+        method: request.method,
+        path,
+        backendUrl: akamaiUrl,
+        error: (error as Error).message,
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: "Akamai Backend Unavailable",
+          message: (error as Error).message,
+          traceId,
+        }),
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Trace-ID": traceId,
+          },
+        }
+      );
+    }
+  }
+
   // Route /api/sse to SSE Lambda Function URL
   if (path === "/api/sse" || path.startsWith("/api/sse?")) {
     if (!config.sseUrl) {
