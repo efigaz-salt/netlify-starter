@@ -18,6 +18,10 @@ const collector = createCollector({
   collectorUuid: Netlify.env.get('SALT_COLLECTOR_UUID')!,
   debug: Netlify.env.get('SALT_DEBUG') === 'true',
 
+  // Maximum exchange size in bytes (3.99MB)
+  // Exchanges larger than this will be dropped
+  maxExchangeSizeBytes: 4182425,
+
   // Optional metadata
   collectorPlatform: 'netlify',
   collectorLabels: {
