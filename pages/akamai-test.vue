@@ -457,10 +457,10 @@ const connectWS = () => {
   wsError.value = null
 
   try {
-    // Connect directly to Akamai backend WebSocket endpoint
-    // Note: WebSocket connections cannot go through HTTP edge functions
+    // Connect through Netlify Edge Function WebSocket proxy
+    // This routes through /api/ws which proxies to the backend
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//akamaitest.salt-cng-team-test.org/ws`
+    const wsUrl = `${protocol}//${window.location.host}/api/ws`
 
     websocket = new WebSocket(wsUrl)
 

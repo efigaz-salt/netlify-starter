@@ -203,7 +203,7 @@ export default async function security(
   const config = getConfig();
   const url = new URL(request.url);
 
-  // Skip security for static assets
+  // Skip security for static assets and WebSocket
   if (config.excludePaths.some((p) => url.pathname.startsWith(p))) {
     return context.next();
   }
@@ -327,5 +327,5 @@ export default async function security(
 
 export const config = {
   path: "/*",
-  excludedPath: ["/_nuxt/*", "/__nuxt/*", "/favicon.ico"],
+  excludedPath: ["/_nuxt/*", "/__nuxt/*", "/favicon.ico", "/api/ws"],
 };

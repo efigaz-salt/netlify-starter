@@ -446,4 +446,5 @@ export default async function apiRouter(
 
 export const config = {
   path: "/api/*",
+  excludedPath: ["/api/ws"], // Exclude WebSocket - handled by websocket-proxy.ts
 };

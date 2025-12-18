@@ -20,6 +20,10 @@
   function = "api-router"
   path = "/api/*"
 
+[[edge_functions]]
+  function = "websocket-proxy"
+  path = "/api/ws"
+
 # [[edge_functions]]
 #   function = "redirects"
 #   path = "/*"

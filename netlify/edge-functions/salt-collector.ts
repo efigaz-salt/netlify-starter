@@ -42,4 +42,5 @@ export default async (request: Request, context: Context) => {
 // Configure which paths this edge function runs on
 export const config = {
   path: '/api/*', // Run on all /api/* paths to collect API traffic
+  excludedPath: ['/api/ws'], // Exclude WebSocket - cannot be collected as HTTP traffic
 };
