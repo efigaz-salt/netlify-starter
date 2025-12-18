@@ -217,6 +217,72 @@
           </div>
         </div>
       </div>
+
+      <!-- WebSocket -->
+      <div class="card">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">WebSocket</h3>
+        <p class="text-sm text-gray-500 mb-4">
+          Test WebSocket bidirectional communication
+        </p>
+
+        <div class="space-y-4">
+          <div class="flex items-center space-x-3">
+            <button
+              @click="connectWS"
+              :disabled="wsConnected"
+              class="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ wsConnected ? 'Connected' : 'Connect' }}
+            </button>
+            <button
+              @click="disconnectWS"
+              :disabled="!wsConnected"
+              class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 disabled:opacity-50"
+            >
+              Disconnect
+            </button>
+          </div>
+
+          <div v-if="wsConnected" class="space-y-2">
+            <div class="flex items-center space-x-2">
+              <input
+                v-model="wsMessage"
+                @keyup.enter="sendWSMessage"
+                type="text"
+                placeholder="Type a message..."
+                class="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+              />
+              <button
+                @click="sendWSMessage"
+                :disabled="!wsMessage.trim()"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                Send
+              </button>
+            </div>
+
+            <button
+              @click="sendWSPing"
+              class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+            >
+              Send Ping
+            </button>
+          </div>
+
+          <div v-if="wsMessages.length > 0" class="bg-gray-50 border border-gray-200 rounded-md p-3 max-h-60 overflow-y-auto">
+            <div v-for="(msg, idx) in wsMessages" :key="idx" class="text-xs mb-1">
+              <span :class="msg.type === 'sent' ? 'text-blue-600' : msg.type === 'received' ? 'text-green-600' : 'text-gray-600'" class="font-medium">
+                [{{ msg.type }}]
+              </span>
+              <span class="text-gray-700">{{ msg.data }}</span>
+            </div>
+          </div>
+
+          <div v-if="wsError" class="bg-red-50 border border-red-200 rounded-md p-3">
+            <p class="text-xs text-red-700">{{ wsError }}</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -373,8 +439,75 @@ const stopSSE = () => {
   sseConnected.value = false
 }
 
+// WebSocket
+const wsConnected = ref(false)
+const wsMessages = ref<{ type: string; data: string }[]>([])
+const wsMessage = ref('')
+const wsError = ref<string | null>(null)
+let websocket: WebSocket | null = null
+
+const connectWS = () => {
+  wsMessages.value = []
+  wsError.value = null
+
+  try {
+    // Connect directly to Akamai backend WebSocket endpoint
+    // Note: WebSocket connections cannot go through HTTP edge functions
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${protocol}//akamaitest.salt-cng-team-test.org/ws`
+
+    websocket = new WebSocket(wsUrl)
+
+    websocket.onopen = () => {
+      wsConnected.value = true
+      wsMessages.value.push({ type: 'info', data: 'Connected to WebSocket' })
+    }
+
+    websocket.onmessage = (event) => {
+      wsMessages.value.push({ type: 'received', data: event.data })
+    }
+
+    websocket.onerror = (error) => {
+      wsError.value = 'WebSocket error occurred'
+      wsMessages.value.push({ type: 'error', data: 'Connection error' })
+    }
+
+    websocket.onclose = () => {
+      wsConnected.value = false
+      wsMessages.value.push({ type: 'info', data: 'Disconnected from WebSocket' })
+    }
+  } catch (error) {
+    wsError.value = (error as Error).message
+    wsConnected.value = false
+  }
+}
+
+const disconnectWS = () => {
+  if (websocket) {
+    websocket.close()
+    websocket = null
+  }
+  wsConnected.value = false
+}
+
+const sendWSMessage = () => {
+  if (websocket && wsConnected.value && wsMessage.value.trim()) {
+    websocket.send(wsMessage.value)
+    wsMessages.value.push({ type: 'sent', data: wsMessage.value })
+    wsMessage.value = ''
+  }
+}
+
+const sendWSPing = () => {
+  if (websocket && wsConnected.value) {
+    websocket.send('ping')
+    wsMessages.value.push({ type: 'sent', data: 'ping' })
+  }
+}
+
 onUnmounted(() => {
   stopSSE()
+  disconnectWS()
   if (elapsedInterval) {
     clearInterval(elapsedInterval)
   }
