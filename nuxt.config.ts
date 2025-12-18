@@ -21,15 +21,5 @@ export default defineNuxtConfig({
       sseUrl: process.env.SSE_FUNCTION_URL || '',
       environment: process.env.ENVIRONMENT || 'development'
     }
-  },
-  // Suppress Vue Router warnings for /api/* paths (handled by edge functions)
-  vite: {
-    vue: {
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => false
-        }
-      }
-    }
   }
 })
