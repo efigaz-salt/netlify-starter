@@ -86,13 +86,17 @@
             {{ largeLoading ? 'Loading...' : 'Run Test' }}
           </button>
 
-          <div v-if="largeResult" class="bg-green-50 border border-green-200 rounded-md p-3">
+          <div v-if="largeResult && !largeResult.error" class="bg-green-50 border border-green-200 rounded-md p-3">
             <p class="text-sm font-medium text-green-800 mb-2">Success!</p>
             <div class="text-xs text-green-700 space-y-1">
-              <p>Size: {{ (largeResult.size / 1024 / 1024).toFixed(2) }} MB</p>
-              <p>Items: {{ largeResult.items?.length || 0 }}</p>
+              <p>Requested: {{ (largeResult.requestedSize / 1024 / 1024).toFixed(2) }} MB</p>
+              <p>Actual: {{ (largeResult.actualSize / 1024 / 1024).toFixed(2) }} MB</p>
               <p>Round-trip: {{ largeResult.roundTrip }}ms</p>
             </div>
+          </div>
+
+          <div v-if="largeResult?.error" class="bg-red-50 border border-red-200 rounded-md p-3">
+            <p class="text-xs text-red-700">{{ largeResult.error }}</p>
           </div>
         </div>
       </div>
@@ -343,7 +347,9 @@ const runLargePayloadTest = async () => {
   const startTime = Date.now()
 
   try {
-    const response = await $fetch(`/api/akamai/api/payload/large?size=${payloadSize.value}`)
+    // Convert MB to bytes (backend expects size in bytes)
+    const sizeInBytes = payloadSize.value * 1024 * 1024
+    const response = await $fetch(`/api/akamai/api/payload/large?size=${sizeInBytes}`)
     const roundTrip = Date.now() - startTime
     largeResult.value = { ...response, roundTrip }
   } catch (e) {
