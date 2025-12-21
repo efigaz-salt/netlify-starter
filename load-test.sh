@@ -5,7 +5,8 @@
 
 TOTAL_REQUESTS=350
 CONCURRENT_JOBS=100  # Number of parallel background processes
-URL="https://efi-ts.netlify.app/api/akamai/api/simple"
+#URL="https://efi-ts.netlify.app/api/akamai/api/simple"
+URL="http://localhost:8888/api/akamai/api/simple"
 RESULTS_FILE="/tmp/load-test-results-$$.txt"
 
 echo "Starting load test: $TOTAL_REQUESTS requests with $CONCURRENT_JOBS concurrent jobs"
