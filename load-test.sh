@@ -3,9 +3,9 @@
 # Load test script - makes 10K parallel requests to the API endpoint
 # Each request has a unique timestamp and collects detailed statistics
 
-TOTAL_REQUESTS=350
+TOTAL_REQUESTS=10000
 CONCURRENT_JOBS=100  # Number of parallel background processes
-URL="https://efi-ts.netlify.app/api/akamai/api/simple"
+URL="https://edgeworker-test.globaldots.com/api/simple"
 #URL="http://localhost:8888/api/akamai/api/simple"
 RESULTS_FILE="/tmp/load-test-results-$$.txt"
 
@@ -23,23 +23,15 @@ make_request() {
   local request_num=$1
   local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
 
+  # Randomly set efi_sent_this to true or false
+  local efi_sent_this=$( [ $((RANDOM % 2)) -eq 0 ] && echo "true" || echo "false" )
+
   # Use curl to get detailed timing information
   local result=$(curl -s -w "%{http_code}|%{time_total}|%{time_connect}|%{time_starttransfer}" -o /dev/null \
     "$URL" \
     -H 'accept: application/json' \
     -H 'accept-language: en-GB,en-US;q=0.9,en;q=0.8' \
-    -H 'content-type: application/json' \
-    -H 'origin: https://efi-ts.netlify.app' \
-    -H 'priority: u=1, i' \
-    -H 'referer: https://efi-ts.netlify.app/akamai-test' \
-    -H 'sec-ch-ua: "Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"' \
-    -H 'sec-ch-ua-mobile: ?0' \
-    -H 'sec-ch-ua-platform: "macOS"' \
-    -H 'sec-fetch-dest: empty' \
-    -H 'sec-fetch-mode: cors' \
-    -H 'sec-fetch-site: same-origin' \
-    -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36' \
-    --data-raw "{\"test\":\"data\",\"timestamp\":\"$timestamp\",\"request_num\":$request_num}")
+    --data-raw "{\"test\":\"data\",\"timestamp\":\"$timestamp\",\"request_num\":$request_num,\"efi_sent_this\":$efi_sent_this}")
 
   # Parse the result
   IFS='|' read -r http_code time_total time_connect time_starttransfer <<< "$result"
