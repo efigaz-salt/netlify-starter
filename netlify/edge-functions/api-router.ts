@@ -266,8 +266,8 @@ export default async function apiRouter(
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // Only handle /api/* routes
-  if (!path.startsWith("/api")) {
+  // Handle /api/* and /api2/* routes
+  if (!path.startsWith("/api") && !path.startsWith("/api2")) {
     return context.next();
   }
 
@@ -305,7 +305,7 @@ export default async function apiRouter(
     return proxyToBackend(newRequest, config, traceId);
   }
 
-  // Handle Akamai backend proxy routes
+  // Handle Akamai backend proxy routes (with Salt collector)
   if (path.startsWith("/api/akamai/")) {
     const akamaiBackend = "https://akamaitest.salt-cng-team-test.org";
     const akamaiPath = path.replace("/api/akamai", "");
@@ -342,6 +342,68 @@ export default async function apiRouter(
     } catch (error) {
       log({
         type: "akamai_proxy_error",
+        timestamp: new Date().toISOString(),
+        traceId,
+        method: request.method,
+        path,
+        backendUrl: akamaiUrl,
+        error: (error as Error).message,
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: "Akamai Backend Unavailable",
+          message: (error as Error).message,
+          traceId,
+        }),
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Trace-ID": traceId,
+          },
+        }
+      );
+    }
+  }
+
+  // Handle api2 routes (bypass Salt collector, direct to Akamai)
+  if (path.startsWith("/api2/")) {
+    const akamaiBackend = "https://akamaitest.salt-cng-team-test.org";
+    const akamaiPath = path.replace("/api2", "");
+    const akamaiUrl = `${akamaiBackend}${akamaiPath}${url.search}`;
+
+    log({
+      type: "api2_proxy",
+      timestamp: new Date().toISOString(),
+      traceId,
+      method: request.method,
+      path,
+      backendUrl: akamaiUrl,
+    });
+
+    try {
+      const headers = new Headers(request.headers);
+      headers.set("X-Trace-ID", traceId);
+      headers.delete("host");
+
+      const response = await fetch(akamaiUrl, {
+        method: request.method,
+        headers,
+        body: ["GET", "HEAD", "OPTIONS"].includes(request.method) ? undefined : request.body,
+      });
+
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set("X-Trace-ID", traceId);
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
+    } catch (error) {
+      log({
+        type: "api2_proxy_error",
         timestamp: new Date().toISOString(),
         traceId,
         method: request.method,
@@ -445,5 +507,5 @@ export default async function apiRouter(
 // ============================================================================
 
 export const config = {
-  path: "/api/*",
+  path: ["/api/*", "/api2/*"],
 };
