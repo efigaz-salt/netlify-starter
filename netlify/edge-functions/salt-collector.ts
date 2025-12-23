@@ -21,6 +21,7 @@ const collector = createCollector({
   // Maximum exchange size in bytes (3.99MB)
   // Exchanges larger than this will be dropped
   maxExchangeSizeBytes: 4182425,
+  allowBodyWithoutContentLengthHeader:false,
 
   // Optional metadata
   collectorPlatform: 'netlify',
