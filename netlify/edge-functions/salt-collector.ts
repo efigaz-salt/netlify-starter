@@ -43,7 +43,7 @@ export default async (request: Request, context: Context) => {
 
   // Collect traffic data using the cloned request
   // This waits for bodies to be collected and sent before returning
-  return await collector.collect(requestForCollection, response);
+  return await collector.collect(requestForCollection, response,context);
 };
 
 // Configure which paths this edge function runs on
