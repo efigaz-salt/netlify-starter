@@ -21,8 +21,10 @@ const collector = createCollector({
   // Maximum exchange size in bytes (3.99MB)
   // Exchanges larger than this will be dropped
   maxExchangeSizeBytes: 4182425,
+  // Whether to allow collecting bodies without Content-Length header
+  // Can cause OOM if large bodies are sent without length
   allowBodyWithoutContentLengthHeader:false,
-
+  collectExchangeWithoutBody:true,
   // Optional metadata
   collectorPlatform: 'netlify',
   collectorLabels: {

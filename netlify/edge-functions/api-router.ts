@@ -367,6 +367,68 @@ export default async function apiRouter(
     }
   }
 
+  // Handle /api/binary and /api2/binary routes (AWS API Gateway)
+  if (path.startsWith("/api/binary") || path.startsWith("/api2/binary")) {
+    const awsBackend = "https://vysuq98i7c.execute-api.eu-north-1.amazonaws.com/v1";
+    const binaryPath = path.replace(/^\/api2?/, ""); // Remove /api or /api2 prefix
+    const awsUrl = `${awsBackend}${binaryPath}${url.search}`;
+
+    log({
+      type: "aws_binary_proxy",
+      timestamp: new Date().toISOString(),
+      traceId,
+      method: request.method,
+      path,
+      backendUrl: awsUrl,
+    });
+
+    try {
+      const headers = new Headers(request.headers);
+      headers.set("X-Trace-ID", traceId);
+      headers.delete("host");
+
+      const response = await fetch(awsUrl, {
+        method: request.method,
+        headers,
+        body: ["GET", "HEAD", "OPTIONS"].includes(request.method) ? undefined : request.body,
+      });
+
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set("X-Trace-ID", traceId);
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });
+    } catch (error) {
+      log({
+        type: "aws_binary_proxy_error",
+        timestamp: new Date().toISOString(),
+        traceId,
+        method: request.method,
+        path,
+        backendUrl: awsUrl,
+        error: (error as Error).message,
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: "AWS Binary Backend Unavailable",
+          message: (error as Error).message,
+          traceId,
+        }),
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Trace-ID": traceId,
+          },
+        }
+      );
+    }
+  }
+
   // Handle api2 routes (bypass Salt collector, direct to Akamai)
   if (path.startsWith("/api2/")) {
     const akamaiBackend = "https://akamaitest.salt-cng-team-test.org";

@@ -19,6 +19,7 @@
               <NuxtLink to="/features" class="nav-link" active-class="active">Feature Flags</NuxtLink>
               <NuxtLink to="/test" class="nav-link" active-class="active">API Test</NuxtLink>
               <NuxtLink to="/akamai-test" class="nav-link" active-class="active">Akamai Test</NuxtLink>
+              <NuxtLink to="/binary-test" class="nav-link" active-class="active">Binary Test</NuxtLink>
               <NuxtLink to="/sse" class="nav-link" active-class="active">SSE Stream</NuxtLink>
               <NuxtLink to="/settings" class="nav-link" active-class="active">Settings</NuxtLink>
             </div>

@@ -8,6 +8,7 @@ const analytics = require('./handlers/analytics');
 const features = require('./handlers/features');
 const products = require('./handlers/products');
 const test = require('./handlers/test');
+const binary = require('./handlers/binary');
 
 // CORS headers
 const corsHeaders = {
@@ -79,6 +80,10 @@ exports.handler = async (event, context) => {
 
     if (path.startsWith('/test')) {
       return await test.handle(requestContext);
+    }
+
+    if (path.startsWith('/binary')) {
+      return await binary.handle(requestContext);
     }
 
     if (path === '/health') {

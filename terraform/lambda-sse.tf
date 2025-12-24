@@ -46,13 +46,8 @@ resource "aws_lambda_function_url" "sse" {
 }
 
 # Allow public access to Function URL
-resource "aws_lambda_permission" "sse_function_url" {
-  statement_id           = "FunctionURLAllowPublicAccess"
-  action                 = "lambda:InvokeFunctionUrl"
-  function_name          = aws_lambda_function.sse.function_name
-  principal              = "*"
-  function_url_auth_type = "NONE"
-}
+# Note: Lambda Function URLs with NONE auth don't require explicit permissions
+# The authorization_type = "NONE" in aws_lambda_function_url handles public access
 
 # CloudWatch Log Group for SSE Lambda
 resource "aws_cloudwatch_log_group" "sse_lambda" {

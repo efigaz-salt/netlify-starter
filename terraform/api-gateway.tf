@@ -11,6 +11,22 @@ resource "aws_api_gateway_rest_api" "main" {
     types = ["REGIONAL"]
   }
 
+  binary_media_types = [
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/gif",
+    "image/webp",
+    "application/pdf",
+    "application/zip",
+    "application/octet-stream",
+    "video/mp4",
+    "video/mpeg",
+    "audio/mpeg",
+    "audio/mp3",
+    "*/*"
+  ]
+
   tags = local.common_tags
 }
 
@@ -92,6 +108,20 @@ resource "aws_api_gateway_resource" "test" {
 resource "aws_api_gateway_resource" "test_proxy" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.test.id
+  path_part   = "{proxy+}"
+}
+
+# /binary
+resource "aws_api_gateway_resource" "binary" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_rest_api.main.root_resource_id
+  path_part   = "binary"
+}
+
+# /binary/{proxy+}
+resource "aws_api_gateway_resource" "binary_proxy" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.binary.id
   path_part   = "{proxy+}"
 }
 
@@ -286,6 +316,40 @@ resource "aws_api_gateway_integration" "test_proxy_any" {
   uri                     = aws_lambda_function.api.invoke_arn
 }
 
+# Binary - ANY method
+resource "aws_api_gateway_method" "binary_any" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.binary.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "binary_any" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.binary.id
+  http_method             = aws_api_gateway_method.binary_any.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.api.invoke_arn
+}
+
+# Binary proxy - ANY method
+resource "aws_api_gateway_method" "binary_proxy_any" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.binary_proxy.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "binary_proxy_any" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.binary_proxy.id
+  http_method             = aws_api_gateway_method.binary_proxy_any.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.api.invoke_arn
+}
+
 # ============================================================================
 # CORS Configuration
 # ============================================================================
@@ -357,6 +421,18 @@ module "cors_test_proxy" {
   resource_id = aws_api_gateway_resource.test_proxy.id
 }
 
+module "cors_binary" {
+  source  = "./modules/cors"
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.binary.id
+}
+
+module "cors_binary_proxy" {
+  source  = "./modules/cors"
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = aws_api_gateway_resource.binary_proxy.id
+}
+
 # ============================================================================
 # Deployment and Stage
 # ============================================================================
@@ -376,6 +452,8 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.products_proxy_any,
     aws_api_gateway_integration.test_any,
     aws_api_gateway_integration.test_proxy_any,
+    aws_api_gateway_integration.binary_any,
+    aws_api_gateway_integration.binary_proxy_any,
   ]
 
   triggers = {
@@ -391,6 +469,8 @@ resource "aws_api_gateway_deployment" "main" {
       aws_api_gateway_resource.products_proxy.id,
       aws_api_gateway_resource.test.id,
       aws_api_gateway_resource.test_proxy.id,
+      aws_api_gateway_resource.binary.id,
+      aws_api_gateway_resource.binary_proxy.id,
     ]))
   }
 

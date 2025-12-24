@@ -35,6 +35,20 @@ output "api_endpoints" {
     analytics  = "${aws_api_gateway_stage.main.invoke_url}/analytics"
     features   = "${aws_api_gateway_stage.main.invoke_url}/features"
     products   = "${aws_api_gateway_stage.main.invoke_url}/products"
+    binary     = "${aws_api_gateway_stage.main.invoke_url}/binary"
+  }
+}
+
+output "binary_endpoints" {
+  description = "Binary content test endpoints"
+  value = {
+    png            = "${aws_api_gateway_stage.main.invoke_url}/binary/image/png"
+    jpeg           = "${aws_api_gateway_stage.main.invoke_url}/binary/image/jpeg"
+    pdf            = "${aws_api_gateway_stage.main.invoke_url}/binary/pdf"
+    zip            = "${aws_api_gateway_stage.main.invoke_url}/binary/zip"
+    octet_stream   = "${aws_api_gateway_stage.main.invoke_url}/binary/octet-stream"
+    video          = "${aws_api_gateway_stage.main.invoke_url}/binary/video"
+    audio          = "${aws_api_gateway_stage.main.invoke_url}/binary/audio"
   }
 }
 
