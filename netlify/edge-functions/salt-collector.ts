@@ -32,7 +32,7 @@ const collector = createCollector({
   // Optional: Memory safety configuration (defaults shown)
   // Allow body collection without Content-Length headers (default: false)
   // WARNING: May cause OOM with large responses. Only enable if responses are guaranteed small.
-  allowBodyWithoutContentLengthHeader: false, // Recommended: false (default)
+  allowBodyWithoutContentLengthHeader: true, // Recommended: false (default)
 
   // Collect exchanges even when bodies are skipped due to missing Content-Length (default: false)
   // When true: sends metadata (headers, URL, method, status) even if body is empty
