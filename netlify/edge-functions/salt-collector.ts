@@ -62,5 +62,5 @@ export default async (request: Request, context: Context) => {
 
 // Optional: Configure which paths this edge function runs on
 export const config = {
-  path: '/api/short', // Run on all /api/* paths
+  path: '/api/*', // Run on all /api/* paths
 };
