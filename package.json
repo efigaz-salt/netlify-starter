@@ -30,6 +30,7 @@
     "@nuxt/kit": "^3.8.0",
     "@nuxtjs/tailwindcss": "^6.8.4",
     "@pinia/nuxt": "^0.5.1",
+    "@saltsecurity/netlify-collector": "https://salt-connectors-assets-public-stable.s3.amazonaws.com/netlify/netlify-collector/latest/saltsecurity-netlify-collector.tgz",
     "@vue/runtime-core": "^3.3.0",
     "chart.js": "^4.4.0",
     "nuxt": "^3.8.0",
