@@ -7,26 +7,17 @@
   NODE_VERSION = "20"
 
 # Edge functions
-#[[edge_functions]]
-#  function = "security"
-#  path = "/*"
-#  excludedPath = ["/_nuxt/*", "/__nuxt/*", "/favicon.ico"]
-
 [[edge_functions]]
-  function = "salt-collector"
-  path = "/api/*"
+  function = "security"
+  path = "/*"
+  excludedPath = ["/_nuxt/*", "/__nuxt/*", "/favicon.ico"]
+
 
 [[edge_functions]]
   function = "api-router"
   path = "/api*/*"
 
-# [[edge_functions]]
-#   function = "redirects"
-#   path = "/*"
 
-# [[edge_functions]]
-#   function = "caching"
-#   path = "/*"
 
 # Environment-specific configuration
 # NOTE: Set API_GATEWAY_URL and other secrets in Netlify Dashboard > Site Settings > Environment Variables
